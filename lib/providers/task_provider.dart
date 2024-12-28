@@ -1,7 +1,12 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:todolist/services/encryption_service.dart';
 
 class TaskProvider with ChangeNotifier {
+  // final FirebaseFirestore _firestore =
+  //     FirebaseFirestore.instance; // Inisialisasi Firestore
+  final EncryptionService _encryptionService =
+      EncryptionService(); // Inisialisasi EncryptionService
   List<Map<String, dynamic>> _tasks = [];
   List<String> _categories = ['All'];
   String _selectedCategory = 'All'; // Kategori default adalah 'All'
@@ -51,10 +56,22 @@ class TaskProvider with ChangeNotifier {
     try {
       final taskData =
           await FirebaseFirestore.instance.collection('tasks').get();
+
+      // Print dokumen untuk memeriksa semua data yang ada
+      print('Fetched tasks: ${taskData.docs.map((doc) => doc.data())}');
+
       _tasks = taskData.docs.map((doc) {
+        // Cek apakah field task_name ada
+        final taskNameEncrypted =
+            doc.data().containsKey('task_name') ? doc['task_name'] : null;
+
+        final decryptedTaskName = taskNameEncrypted != null
+            ? _encryptionService.decryptData(taskNameEncrypted)
+            : 'Unknown Task'; // Jika tidak ada task_name, beri nilai default
+
         return {
           'id': doc.id,
-          'taskName': doc['task'],
+          'taskName': decryptedTaskName,
           'taskDate': (doc['date'] as Timestamp).toDate(),
           'category': doc['category'],
           'isCompleted': doc['isCompleted'] ?? false,
@@ -81,16 +98,28 @@ class TaskProvider with ChangeNotifier {
   }
 
   // Add a new task to Firestore
-  Future<void> addTask(String taskName, DateTime date, String category) async {
+  Future<void> addTask(
+      String taskName, DateTime taskDate, String category) async {
     try {
-      await FirebaseFirestore.instance.collection('tasks').add({
-        'task': taskName,
-        'date': date,
-        'category': category,
-        'createdAt': FieldValue.serverTimestamp(),
-        'isCompleted': false, // Default task is not completed
-      });
-      fetchTasks(); // Refresh tasks list
+      if (taskName.isNotEmpty) {
+        // Enkripsi task name sebelum menyimpan ke database
+        String encryptedTaskName = _encryptionService.encryptData(taskName);
+        if (encryptedTaskName.isNotEmpty) {
+          // Simpan task name yang terenkripsi bersama IV ke Firestore
+          await FirebaseFirestore.instance.collection('tasks').add({
+            'task_name': encryptedTaskName, // Data terenkripsi
+            'date': taskDate,
+            'category': category,
+            'isCompleted': false,
+          });
+          print('Task added successfully');
+          fetchTasks();
+        } else {
+          print('Task name encryption failed.');
+        }
+      } else {
+        print('Task name is empty.');
+      }
     } catch (e) {
       print('Error adding task: $e');
     }
@@ -204,16 +233,33 @@ class TaskProvider with ChangeNotifier {
 
   // Update task details
   Future<void> updateTaskDetails(String taskId, String newTaskName,
-      DateTime newDate, String newCategory) async {
+      DateTime taskDate, String category) async {
     try {
-      await FirebaseFirestore.instance.collection('tasks').doc(taskId).update({
-        'task': newTaskName,
-        'date': newDate,
-        'category': newCategory,
-      });
-      fetchTasks(); // Refresh tasks list after updating
+      // Ambil task yang akan diupdate
+      final taskDoc = await FirebaseFirestore.instance
+          .collection('tasks')
+          .doc(taskId)
+          .get();
+
+      if (taskDoc.exists) {
+        // Enkripsi nama task yang baru
+        String encryptedNewTaskName =
+            _encryptionService.encryptData(newTaskName);
+
+        // Update task di Firestore dengan task name yang baru dan tanggal baru
+        await taskDoc.reference.update({
+          'task_name': encryptedNewTaskName, // Enkripsi task name
+          'date': taskDate, // Task date
+          'category': category, // Kategori
+        });
+
+        print('Task updated successfully');
+        fetchTasks();
+      } else {
+        print('Task not found');
+      }
     } catch (e) {
-      print('Error updating task details: $e');
+      print('Error updating task: $e');
     }
   }
 
@@ -228,10 +274,11 @@ class TaskProvider with ChangeNotifier {
       _tasks = taskData.docs.map((doc) {
         return {
           'id': doc.id,
-          'taskName': doc['task'],
+          'taskName': doc['task_name'],
           'taskDate': (doc['date'] as Timestamp).toDate(),
           'category': doc['category'],
           'isCompleted': doc['isCompleted'] ?? false,
+          'priority': doc['priority'] ?? 0, // Tambahkan priority
         };
       }).toList();
       notifyListeners();
@@ -245,16 +292,17 @@ class TaskProvider with ChangeNotifier {
     try {
       final taskData = await FirebaseFirestore.instance
           .collection('tasks')
-          .where('task', isGreaterThanOrEqualTo: keyword)
-          .where('task', isLessThanOrEqualTo: '$keyword\\uf8ff')
+          .where('task_name', isGreaterThanOrEqualTo: keyword)
+          .where('task_name', isLessThanOrEqualTo: '$keyword\uf8ff')
           .get();
       _tasks = taskData.docs.map((doc) {
         return {
           'id': doc.id,
-          'taskName': doc['task'],
+          'taskName': doc['task_name'],
           'taskDate': (doc['date'] as Timestamp).toDate(),
           'category': doc['category'],
           'isCompleted': doc['isCompleted'] ?? false,
+          'priority': doc['priority'] ?? 0, // Tambahkan priority
         };
       }).toList();
       notifyListeners();
@@ -271,7 +319,11 @@ class TaskProvider with ChangeNotifier {
 
   // Sort tasks by priority
   void sortTasksByPriority() {
-    _tasks.sort((a, b) => a['priority'].compareTo(b['priority']));
+    _tasks.sort((a, b) {
+      int priorityA = a['priority'] ?? 0; // Pastikan ada kolom priority
+      int priorityB = b['priority'] ?? 0; // Pastikan ada kolom priority
+      return priorityA.compareTo(priorityB);
+    });
     notifyListeners();
   }
 }
