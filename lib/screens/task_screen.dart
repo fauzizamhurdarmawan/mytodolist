@@ -32,12 +32,12 @@ class _TaskScreenState extends State<TaskScreen> {
       appBar: AppBar(
         title: const Text("My Tasks"),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.add),
-            onPressed: () async {
-              await _showAddTaskDialog(context);
-            },
-          ),
+          // IconButton(
+          //   icon: const Icon(Icons.add),
+          //   onPressed: () async {
+          //     await _showAddTaskDialog(context);
+          //   },
+          // ),
           IconButton(
             icon: const Icon(Icons.refresh),
             onPressed: () {
@@ -83,34 +83,77 @@ class _TaskScreenState extends State<TaskScreen> {
                 }
               },
             ),
-            ElevatedButton(
-              onPressed: () {
-                _showEditCategoryDialog(
-                    context,
-                    Provider.of<TaskProvider>(context, listen: false)
-                        .selectedCategory);
-              },
-              child: const Text('Edit Selected Category'),
+            const SizedBox(height: 5),
+            // Row with buttons (Add New, Edit, Delete Category)
+            Row(
+              mainAxisAlignment:
+                  MainAxisAlignment.center, // Tombol akan ditempatkan di tengah
+              children: [
+                ElevatedButton(
+                  onPressed: () {
+                    _showAddCategoryDialog(context);
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Color.fromRGBO(107, 33, 168, 1),
+                    foregroundColor: Colors.white, // Warna teks putih
+                    padding:
+                        EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
+                    textStyle: TextStyle(
+                      fontFamily: 'Roboto', // Font Roboto
+                    ),
+                  ),
+                  child: Center(
+                    child: const Text('Add Category'),
+                  ),
+                ),
+                const SizedBox(width: 3),
+                ElevatedButton(
+                  onPressed: () {
+                    _showEditCategoryDialog(
+                        context,
+                        Provider.of<TaskProvider>(context, listen: false)
+                            .selectedCategory);
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Color.fromRGBO(107, 33, 168, 1),
+                    foregroundColor: Colors.white, // Warna teks putih
+                    padding:
+                        EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
+                    textStyle: TextStyle(
+                      fontFamily: 'Roboto', // Font Roboto
+                    ),
+                  ),
+                  child: Center(
+                    child: const Text('Edit Category'),
+                  ),
+                ),
+                const SizedBox(width: 3),
+                ElevatedButton(
+                  onPressed: () {
+                    _removeCategory(
+                        context,
+                        Provider.of<TaskProvider>(context, listen: false)
+                            .selectedCategory);
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Color.fromRGBO(107, 33, 168, 1),
+                    foregroundColor: Colors.white, // Warna teks putih
+                    padding:
+                        EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
+                    textStyle: TextStyle(
+                      fontFamily: 'Roboto', // Font Roboto
+                    ),
+                  ),
+                  child: Center(
+                    child: const Text('Delete Category'),
+                  ),
+                ),
+              ],
             ),
-            ElevatedButton(
-              onPressed: () {
-                _removeCategory(
-                    context,
-                    Provider.of<TaskProvider>(context, listen: false)
-                        .selectedCategory);
-              },
-              child: const Text('Delete Selected Category'),
-            ),
-            const SizedBox(height: 16),
-            ElevatedButton(
-              onPressed: () {
-                _showAddCategoryDialog(context);
-              },
-              child: const Text('Add New Category'),
-            ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 10),
             // Filter Status Dropdown
             const Text('Filter by Status', style: TextStyle(fontSize: 16)),
+            const SizedBox(height: 10),
             DropdownButton<String>(
               value:
                   Provider.of<TaskProvider>(context).selectedCompletionStatus,
@@ -129,7 +172,7 @@ class _TaskScreenState extends State<TaskScreen> {
                 }
               },
             ),
-            const SizedBox(height: 16),
+
             // Task List
             Expanded(
               child: Consumer<TaskProvider>(
@@ -142,7 +185,7 @@ class _TaskScreenState extends State<TaskScreen> {
                       return Card(
                         margin: const EdgeInsets.symmetric(vertical: 8),
                         child: ListTile(
-                          contentPadding: const EdgeInsets.all(16),
+                          contentPadding: const EdgeInsets.all(10),
                           title: Text(task['taskName']),
                           subtitle: Text(
                               'Due: ${task['taskDate'].toString().substring(0, 10)}'),
@@ -318,20 +361,20 @@ class _TaskScreenState extends State<TaskScreen> {
                 },
                 child: const Text('Cancel'),
               ),
-              TextButton(
-                onPressed: () {
-                  if (_taskController.text.isNotEmpty) {
-                    taskProvider.addTask(_taskController.text, _selectedDate,
-                        taskProvider.selectedCategory);
-                    _taskController.clear();
-                    Navigator.pop(context);
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Task added successfully')),
-                    );
-                  }
-                },
-                child: const Text('Add Task'),
-              ),
+              // TextButton(
+              //   onPressed: () {
+              //     if (_taskController.text.isNotEmpty) {
+              //       taskProvider.addTask(_taskController.text, _selectedDate,
+              //           taskProvider.selectedCategory);
+              //       _taskController.clear();
+              //       Navigator.pop(context);
+              //       ScaffoldMessenger.of(context).showSnackBar(
+              //         const SnackBar(content: Text('Task added successfully')),
+              //       );
+              //     }
+              //   },
+              //   child: const Text('Add Task'),
+              // ),
             ],
           );
         });
@@ -427,26 +470,11 @@ class _TaskScreenState extends State<TaskScreen> {
     final TaskProvider taskProvider =
         Provider.of<TaskProvider>(context, listen: false);
     taskProvider.removeTask(task['id']);
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Task removed successfully')),
-    );
   }
 
   void _removeCategory(BuildContext context, String category) {
     final TaskProvider taskProvider =
         Provider.of<TaskProvider>(context, listen: false);
     taskProvider.removeCategory(category);
-
-    // Memperbarui kategori yang dipilih menjadi "All" jika kategori yang dihapus adalah kategori yang sedang dipilih
-    String newSelectedCategory = category == taskProvider.selectedCategory
-        ? 'All' // Jika kategori yang dihapus adalah kategori yang dipilih, pilih "All"
-        : taskProvider.selectedCategory;
-
-    // Update kategori yang dipilih
-    taskProvider.updateSelectedCategory(newSelectedCategory);
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Kategori berhasil dihapus')),
-    );
   }
 }
