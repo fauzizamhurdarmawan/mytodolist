@@ -3,6 +3,10 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:table_calendar/table_calendar.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:timezone/data/latest.dart' as tz;
+import 'package:permission_handler/permission_handler.dart';
+import 'package:todolist/services/encryption_service.dart';
+import 'package:todolist/services/weather_service.dart';
+import 'package:weather_icons/weather_icons.dart';
 
 class CalendarScreen extends StatefulWidget {
   const CalendarScreen({super.key});
@@ -12,6 +16,9 @@ class CalendarScreen extends StatefulWidget {
 }
 
 class _CalendarScreenState extends State<CalendarScreen> {
+  final WeatherService _weatherService = WeatherService();
+  String _weatherInfo = 'Loading...';
+  final EncryptionService _encryptionService = EncryptionService();
   DateTime _focusedDay = DateTime.now();
   DateTime? _selectedDay;
   List<Map<String, dynamic>> _tasks = [];
@@ -21,11 +28,51 @@ class _CalendarScreenState extends State<CalendarScreen> {
   @override
   void initState() {
     super.initState();
-    _fetchTasksForDate(_focusedDay);
+    _requestPermission();
     _initializeNotifications();
+    _fetchWeather(); // Memuat data cuaca
+    _fetchTasksForDate(_focusedDay); // Memuat tugas untuk tanggal fokus
   }
 
-  // Menginisialisasi notifikasi
+  Future<void> _fetchWeather() async {
+    try {
+      String weather = await _weatherService.getWeather('Bandung');
+      setState(() {
+        _weatherInfo = weather;
+      });
+    } catch (e) {
+      setState(() {
+        _weatherInfo = 'Error fetching weather';
+      });
+    }
+  }
+
+  IconData _getWeatherIcon(String condition) {
+    switch (condition.toLowerCase()) {
+      case 'clear sky':
+        return WeatherIcons.day_sunny;
+      case 'few clouds':
+        return WeatherIcons.day_cloudy;
+      case 'rain':
+        return WeatherIcons.rain;
+      case 'thunderstorm':
+        return WeatherIcons.thunderstorm;
+      case 'snow':
+        return WeatherIcons.snow;
+      case 'mist':
+        return WeatherIcons.fog;
+      default:
+        return WeatherIcons.day_sunny;
+    }
+  }
+
+  Future<void> _requestPermission() async {
+    PermissionStatus status = await Permission.notification.request();
+    if (!status.isGranted) {
+      print("Izin notifikasi ditolak");
+    }
+  }
+
   Future<void> _initializeNotifications() async {
     tz.initializeTimeZones();
     const AndroidInitializationSettings initializationSettingsAndroid =
@@ -35,39 +82,16 @@ class _CalendarScreenState extends State<CalendarScreen> {
     await flutterLocalNotificationsPlugin.initialize(initializationSettings);
   }
 
-  // Menampilkan notifikasi
-  Future<void> _showNotification(String title, String body) async {
-    const AndroidNotificationDetails androidPlatformChannelSpecifics =
-        AndroidNotificationDetails(
-      'your_channel_id',
-      'your_channel_name',
-      importance: Importance.high,
-      priority: Priority.high,
-      ticker: 'ticker',
-    );
-
-    const NotificationDetails platformChannelSpecifics =
-        NotificationDetails(android: androidPlatformChannelSpecifics);
-
-    await flutterLocalNotificationsPlugin.show(
-        0, title, body, platformChannelSpecifics);
-  }
-
-  // Menambahkan tugas ke Firestore
   Future<void> _addTask(String task, DateTime date) async {
     try {
+      final encryptedTask = _encryptionService.encryptData(task);
       await FirebaseFirestore.instance.collection('tasks').add({
-        'task': task,
-        'date': Timestamp.fromDate(date), // Simpan sebagai Timestamp
+        'task_name': encryptedTask,
+        'date': Timestamp.fromDate(date),
         'createdAt': Timestamp.fromDate(DateTime.now()),
-        'isCompleted': false, // Ganti notified menjadi isCompleted
+        'isCompleted': false,
       });
-
-      // Notifikasi sukses
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Tugas berhasil ditambahkan!')),
-      );
-      _fetchTasksForDate(date); // Refresh daftar tugas setelah menambahkan
+      _fetchTasksForDate(date);
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Gagal menambahkan tugas: $e')),
@@ -75,11 +99,9 @@ class _CalendarScreenState extends State<CalendarScreen> {
     }
   }
 
-  // Memuat tugas berdasarkan tanggal
   Future<void> _fetchTasksForDate(DateTime date) async {
     final startOfDay = DateTime(date.year, date.month, date.day);
     final endOfDay = DateTime(date.year, date.month, date.day, 23, 59, 59);
-
     try {
       final querySnapshot = await FirebaseFirestore.instance
           .collection('tasks')
@@ -89,112 +111,61 @@ class _CalendarScreenState extends State<CalendarScreen> {
 
       setState(() {
         _tasks = querySnapshot.docs.map((doc) {
+          final encryptedTaskName = doc['task_name'] as String;
+          final decryptedTaskName =
+              _encryptionService.decryptData(encryptedTaskName);
           return {
-            'task': doc['task'],
-            'createdAt': doc['createdAt']?.toDate(),
-            'isCompleted': doc['isCompleted'], // Menambahkan status isCompleted
+            'task': decryptedTaskName,
+            'date': doc['date'].toDate(),
+            'isCompleted': doc['isCompleted'],
           };
         }).toList();
       });
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error fetching tasks: $e')),
-      );
+      print('Error fetching tasks: $e');
     }
   }
 
-  // Memeriksa notifikasi untuk tugas yang terlambat atau untuk besok
-  Future<void> _checkForNotifications() async {
-    final now = DateTime.now();
-    final tomorrow = DateTime(now.year, now.month, now.day + 1);
-
-    // Query untuk tugas yang terlambat
-    final overdueTasksQuery = FirebaseFirestore.instance
-        .collection('tasks')
-        .where('date', isLessThan: Timestamp.fromDate(now))
-        .get();
-
-    // Query untuk tugas yang akan datang besok
-    final upcomingTasksQuery = FirebaseFirestore.instance
-        .collection('tasks')
-        .where('date', isGreaterThanOrEqualTo: Timestamp.fromDate(tomorrow))
-        .where('date',
-            isLessThan: Timestamp.fromDate(tomorrow.add(Duration(days: 1))))
-        .get();
-
-    final overdueTasksSnapshot = await overdueTasksQuery;
-    final upcomingTasksSnapshot = await upcomingTasksQuery;
-
-    // Mempersiapkan daftar tugas yang terlewat dan besok
-    List<String> overdueTasks = [];
-    List<String> upcomingTasks = [];
-
-    if (overdueTasksSnapshot.docs.isNotEmpty) {
-      for (var task in overdueTasksSnapshot.docs) {
-        overdueTasks.add('Tugas Terlambat: ${task['task']}');
-      }
-    }
-
-    if (upcomingTasksSnapshot.docs.isNotEmpty) {
-      for (var task in upcomingTasksSnapshot.docs) {
-        upcomingTasks.add('Tugas Besok: ${task['task']}');
-      }
-    }
-
-    // Menampilkan dialog dengan detail tugas
-    if (overdueTasks.isNotEmpty || upcomingTasks.isNotEmpty) {
-      _showTaskDialog(overdueTasks, upcomingTasks);
-    }
-  }
-
-  // Menampilkan dialog dengan tugas terlewat dan besok
-  void _showTaskDialog(List<String> overdueTasks, List<String> upcomingTasks) {
-    showDialog(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: Text('Notifikasi Tugas'),
-          content: SingleChildScrollView(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                if (overdueTasks.isNotEmpty)
-                  Text(
-                    'Tugas yang Terlambat:',
-                    style: TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                ...overdueTasks.map((task) => Text(task)),
-                if (overdueTasks.isNotEmpty && upcomingTasks.isNotEmpty)
-                  SizedBox(height: 16),
-                if (upcomingTasks.isNotEmpty)
-                  Text(
-                    'Tugas Besok:',
-                    style: TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                ...upcomingTasks.map((task) => Text(task)),
-              ],
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
-              child: Text('Tutup'),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
-  // Menangani pemilihan tanggal
   void _onDaySelected(DateTime selectedDay, DateTime focusedDay) {
     setState(() {
       _selectedDay = selectedDay;
       _focusedDay = focusedDay;
     });
     _fetchTasksForDate(selectedDay);
+  }
+
+  void _showAddTaskDialog(BuildContext context) {
+    final TextEditingController taskController = TextEditingController();
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          title: const Text('Tambah Tugas'),
+          content: TextField(
+            controller: taskController,
+            decoration: const InputDecoration(hintText: 'Masukkan tugas'),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Batal'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                final task = taskController.text;
+                if (task.isNotEmpty) {
+                  _addTask(task, _focusedDay);
+                  Navigator.of(context).pop();
+                }
+              },
+              child: const Text('Tambah'),
+            ),
+          ],
+        );
+      },
+    );
   }
 
   @override
@@ -204,21 +175,39 @@ class _CalendarScreenState extends State<CalendarScreen> {
         title: const Text('Kalender & Tugas'),
         actions: [
           IconButton(
-            icon: Icon(Icons.notifications),
-            onPressed:
-                _checkForNotifications, // Memeriksa dan menampilkan notifikasi saat tombol lonceng ditekan
+            icon: const Icon(Icons.notifications),
+            onPressed: () {
+              // Tambahkan logika untuk notifikasi di sini
+            },
           ),
         ],
       ),
       body: Column(
         children: [
+          Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Card(
+              elevation: 4,
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16)),
+              child: ListTile(
+                leading: Icon(
+                  _getWeatherIcon(_weatherInfo),
+                  size: 40.0,
+                ),
+                title: Text(
+                  _weatherInfo,
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
+                subtitle: const Text('Cuaca hari ini di Bandung'),
+              ),
+            ),
+          ),
           TableCalendar(
             firstDay: DateTime.utc(2020, 1, 1),
             lastDay: DateTime.utc(2100, 12, 31),
             focusedDay: _focusedDay,
-            selectedDayPredicate: (day) {
-              return isSameDay(_selectedDay, day);
-            },
+            selectedDayPredicate: (day) => isSameDay(_selectedDay, day),
             onDaySelected: _onDaySelected,
           ),
           const SizedBox(height: 16),
@@ -229,60 +218,33 @@ class _CalendarScreenState extends State<CalendarScreen> {
                     itemCount: _tasks.length,
                     itemBuilder: (context, index) {
                       final task = _tasks[index];
-                      return ListTile(
-                        title: Text(task['task']),
-                        subtitle: Text('Dibuat pada: ${task['createdAt']}'),
+                      return Card(
+                        margin: const EdgeInsets.symmetric(
+                            horizontal: 16, vertical: 8),
+                        child: ListTile(
+                          title: Text(task['task']),
+                          subtitle: Text('Tanggal: ${task['date']}'),
+                        ),
                       );
                     },
                   ),
           ),
-          // Tombol untuk menambahkan tugas baru
           Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: ElevatedButton(
-              onPressed: () {
-                _showAddTaskDialog(context);
-              },
-              child: Text('Tambah Tugas'),
+            padding: const EdgeInsets.all(16.0),
+            child: ElevatedButton.icon(
+              onPressed: () => _showAddTaskDialog(context),
+              icon: const Icon(Icons.add),
+              label: const Text('Tambah Tugas'),
+              style: ElevatedButton.styleFrom(
+                padding:
+                    const EdgeInsets.symmetric(vertical: 16, horizontal: 24),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16)),
+              ),
             ),
           ),
         ],
       ),
-    );
-  }
-
-  // Dialog untuk menambah tugas
-  void _showAddTaskDialog(BuildContext context) {
-    final TextEditingController taskController = TextEditingController();
-    showDialog(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: Text('Tambah Tugas'),
-          content: TextField(
-            controller: taskController,
-            decoration: InputDecoration(hintText: 'Masukkan tugas'),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
-              child: Text('Batal'),
-            ),
-            TextButton(
-              onPressed: () {
-                String task = taskController.text.trim();
-                if (task.isNotEmpty) {
-                  _addTask(task, _focusedDay);
-                  Navigator.of(context).pop();
-                }
-              },
-              child: Text('Tambah'),
-            ),
-          ],
-        );
-      },
     );
   }
 }
