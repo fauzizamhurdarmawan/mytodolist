@@ -232,7 +232,7 @@ class _HomeScreenState extends State<HomeScreen> {
         child: Container(
           margin: const EdgeInsets.all(8.0),
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: Color.fromRGBO(107, 33, 168, 1),
             borderRadius: BorderRadius.circular(28),
             boxShadow: [
               BoxShadow(
@@ -249,28 +249,28 @@ class _HomeScreenState extends State<HomeScreen> {
               BottomNavigationBarItem(
                 icon: Icon(
                   Icons.task,
-                  color: _selectedIndex == 0 ? Colors.deepPurple : Colors.grey,
+                  color: _selectedIndex == 0 ? Colors.white : Colors.grey,
                 ),
                 label: 'Tugas',
               ),
               BottomNavigationBarItem(
                 icon: Icon(
                   Icons.calendar_today,
-                  color: _selectedIndex == 1 ? Colors.deepPurple : Colors.grey,
+                  color: _selectedIndex == 1 ? Colors.white : Colors.grey,
                 ),
                 label: 'Kalender',
               ),
               BottomNavigationBarItem(
                 icon: Icon(
                   Icons.account_circle,
-                  color: _selectedIndex == 2 ? Colors.deepPurple : Colors.grey,
+                  color: _selectedIndex == 2 ? Colors.white : Colors.grey,
                 ),
                 label: 'Akun',
               ),
             ],
             backgroundColor: Colors.transparent,
             elevation: 0,
-            selectedItemColor: Colors.deepPurple,
+            selectedItemColor: Colors.yellow,
             unselectedItemColor: Colors.grey,
             selectedLabelStyle: const TextStyle(
               fontFamily: 'Roboto',
