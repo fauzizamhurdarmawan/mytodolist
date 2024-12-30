@@ -135,6 +135,7 @@ class _AccountScreenState extends State<AccountScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Account', style: TextStyle(fontFamily: 'Roboto')),
+        backgroundColor: const Color.fromARGB(255, 211, 203, 218),
         actions: [
           IconButton(
             icon: Icon(Icons.settings),
@@ -148,119 +149,132 @@ class _AccountScreenState extends State<AccountScreen> {
           ),
         ],
       ),
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.start,
-          children: [
-            const SizedBox(height: 50),
-            // Menampilkan gambar profil jika ada, jika tidak tampilkan gambar default
-            MouseRegion(
-              onEnter: (_) => setState(() => _isHovering = true),
-              onExit: (_) => setState(() => _isHovering = false),
-              child: GestureDetector(
-                onTap: () {
-                  // Pilih gambar dari kamera atau galeri
-                  showModalBottomSheet(
-                    context: context,
-                    builder: (context) {
-                      return Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          ListTile(
-                            leading: const Icon(Icons.camera),
-                            title: const Text('Take a photo',
-                                style: TextStyle(fontFamily: 'Roboto')),
-                            onTap: () {
-                              _pickImage(ImageSource.camera);
-                              Navigator.pop(context);
-                            },
-                          ),
-                          ListTile(
-                            leading: const Icon(Icons.image),
-                            title: const Text('Choose from gallery',
-                                style: TextStyle(fontFamily: 'Roboto')),
-                            onTap: () {
-                              _pickImage(ImageSource.gallery);
-                              Navigator.pop(context);
-                            },
-                          ),
-                        ],
-                      );
-                    },
-                  );
-                },
-                child: Stack(
-                  alignment: Alignment.center,
-                  children: [
-                    FutureBuilder<String?>(
-                      future: _getProfileImageBase64(),
-                      builder: (context, snapshot) {
-                        if (snapshot.connectionState ==
-                            ConnectionState.waiting) {
-                          return const CircleAvatar(
-                            radius: 50,
-                            child: CircularProgressIndicator(),
-                          );
-                        } else if (snapshot.hasError) {
-                          return const CircleAvatar(
-                            radius: 50,
-                            child: Icon(Icons.error),
-                          );
-                        } else {
-                          String? base64Image = snapshot.data;
-                          if (base64Image != null && base64Image.isNotEmpty) {
-                            return CircleAvatar(
-                              radius: 50,
-                              backgroundImage:
-                                  MemoryImage(base64Decode(base64Image)),
-                            );
-                          } else {
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            colors: [
+              Color.fromARGB(255, 193, 185, 200), // Warna gradien pertama
+              Colors.white, // Warna gradien kedua
+            ],
+            begin: Alignment.topLeft, // Gradien mulai dari kiri atas
+            end: Alignment.bottomRight, // Gradien berakhir di kanan bawah
+          ),
+        ),
+        child: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.start,
+            children: [
+              const SizedBox(height: 50),
+              // Menampilkan gambar profil jika ada, jika tidak tampilkan gambar default
+              MouseRegion(
+                onEnter: (_) => setState(() => _isHovering = true),
+                onExit: (_) => setState(() => _isHovering = false),
+                child: GestureDetector(
+                  onTap: () {
+                    // Pilih gambar dari kamera atau galeri
+                    showModalBottomSheet(
+                      context: context,
+                      builder: (context) {
+                        return Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            ListTile(
+                              leading: const Icon(Icons.camera),
+                              title: const Text('Take a photo',
+                                  style: TextStyle(fontFamily: 'Roboto')),
+                              onTap: () {
+                                _pickImage(ImageSource.camera);
+                                Navigator.pop(context);
+                              },
+                            ),
+                            ListTile(
+                              leading: const Icon(Icons.image),
+                              title: const Text('Choose from gallery',
+                                  style: TextStyle(fontFamily: 'Roboto')),
+                              onTap: () {
+                                _pickImage(ImageSource.gallery);
+                                Navigator.pop(context);
+                              },
+                            ),
+                          ],
+                        );
+                      },
+                    );
+                  },
+                  child: Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      FutureBuilder<String?>(
+                        future: _getProfileImageBase64(),
+                        builder: (context, snapshot) {
+                          if (snapshot.connectionState ==
+                              ConnectionState.waiting) {
                             return const CircleAvatar(
                               radius: 50,
-                              backgroundImage: AssetImage(
-                                  'assets/images/default_profile.png'), // Default image
+                              child: CircularProgressIndicator(),
                             );
+                          } else if (snapshot.hasError) {
+                            return const CircleAvatar(
+                              radius: 50,
+                              child: Icon(Icons.error),
+                            );
+                          } else {
+                            String? base64Image = snapshot.data;
+                            if (base64Image != null && base64Image.isNotEmpty) {
+                              return CircleAvatar(
+                                radius: 50,
+                                backgroundImage:
+                                    MemoryImage(base64Decode(base64Image)),
+                              );
+                            } else {
+                              return const CircleAvatar(
+                                radius: 50,
+                                backgroundImage: AssetImage(
+                                    'assets/images/default_profile.png'), // Default image
+                              );
+                            }
                           }
-                        }
-                      },
-                    ),
-                    if (_isHovering)
-                      Container(
-                        width: 100,
-                        height: 100,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: Colors.black.withOpacity(0.3),
-                        ),
-                        child: const Icon(
-                          Icons.camera_alt,
-                          color: Colors.white,
-                          size: 30,
-                        ),
+                        },
                       ),
-                  ],
+                      if (_isHovering)
+                        Container(
+                          width: 100,
+                          height: 100,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: Colors.black.withOpacity(0.3),
+                          ),
+                          child: const Icon(
+                            Icons.camera_alt,
+                            color: Colors.white,
+                            size: 30,
+                          ),
+                        ),
+                    ],
+                  ),
                 ),
               ),
-            ),
-            const SizedBox(height: 20),
-            Text('Welcome, ${_auth.currentUser?.email}',
-                style: const TextStyle(fontFamily: 'Roboto')),
-            const SizedBox(height: 30),
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.purple,
-                padding:
-                    const EdgeInsets.symmetric(vertical: 15, horizontal: 30),
+              const SizedBox(height: 20),
+              Text('Welcome, ${_auth.currentUser?.email}',
+                  style: const TextStyle(fontFamily: 'Roboto')),
+              const SizedBox(height: 30),
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.purple,
+                  padding:
+                      const EdgeInsets.symmetric(vertical: 15, horizontal: 30),
+                ),
+                onPressed: () => _signOut(context),
+                child: const Text(
+                  'Sign Out',
+                  style: TextStyle(
+                      color: Colors.white,
+                      fontFamily:
+                          'Roboto'), // Mengubah warna teks menjadi putih
+                ),
               ),
-              onPressed: () => _signOut(context),
-              child: const Text(
-                'Sign Out',
-                style: TextStyle(
-                    color: Colors.white,
-                    fontFamily: 'Roboto'), // Mengubah warna teks menjadi putih
-              ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
