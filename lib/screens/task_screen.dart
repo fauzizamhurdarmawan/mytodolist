@@ -30,200 +30,228 @@ class _TaskScreenState extends State<TaskScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text("My Tasks"),
+        title: const Text("My Tasks",
+            style: TextStyle(fontSize: 20, color: Colors.black)),
+        centerTitle: true,
+        backgroundColor: const Color.fromARGB(255, 211, 203, 218),
         actions: [
-          // IconButton(
-          //   icon: const Icon(Icons.add),
-          //   onPressed: () async {
-          //     await _showAddTaskDialog(context);
-          //   },
-          // ),
           IconButton(
             icon: const Icon(Icons.refresh),
             onPressed: () {
-              _searchController.clear(); // Clear the search field
-              Provider.of<TaskProvider>(context, listen: false)
-                  .fetchTasks(); // Reset tasks to original state
+              _searchController.clear();
+              Provider.of<TaskProvider>(context, listen: false).fetchTasks();
             },
-          )
+          ),
         ],
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Search Bar
-            TextField(
-              controller: _searchController,
-              decoration: const InputDecoration(
-                labelText: 'Search Tasks',
-                prefixIcon: Icon(Icons.search),
-                border: OutlineInputBorder(),
-              ),
-              onChanged: (value) {
-                Provider.of<TaskProvider>(context, listen: false)
-                    .searchTasks(value);
-              },
-            ),
-            const SizedBox(height: 16),
-            // Category Dropdown
-            const Text('Select Category', style: TextStyle(fontSize: 16)),
-            DropdownButton<String>(
-              value: Provider.of<TaskProvider>(context).selectedCategory,
-              items: Provider.of<TaskProvider>(context)
-                  .categories
-                  .map((category) => DropdownMenuItem<String>(
-                      value: category, child: Text(category)))
-                  .toList(),
-              onChanged: (category) {
-                if (category != null) {
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            colors: [const Color.fromARGB(255, 193, 185, 200), Colors.white],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Search Bar
+              TextField(
+                controller: _searchController,
+                style: const TextStyle(color: Colors.black),
+                decoration: InputDecoration(
+                  labelText: 'Search Tasks',
+                  labelStyle: const TextStyle(color: Colors.black),
+                  prefixIcon: const Icon(Icons.search, color: Colors.black),
+                  filled: true,
+                  fillColor: Colors.black.withOpacity(0.2),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide.none,
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: const BorderSide(color: Colors.black),
+                  ),
+                ),
+                onChanged: (value) {
                   Provider.of<TaskProvider>(context, listen: false)
-                      .updateSelectedCategory(category);
-                }
-              },
-            ),
-            const SizedBox(height: 5),
-            // Row with buttons (Add New, Edit, Delete Category)
-            Row(
-              mainAxisAlignment:
-                  MainAxisAlignment.center, // Tombol akan ditempatkan di tengah
-              children: [
-                ElevatedButton(
+                      .searchTasks(value);
+                },
+              ),
+              const SizedBox(height: 16),
+              // Category Dropdown
+              const Text(
+                'Select Category',
+                style: TextStyle(fontSize: 16, color: Colors.black),
+              ),
+              const SizedBox(height: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+                decoration: BoxDecoration(
+                  color: Colors.black.withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: DropdownButton<String>(
+                  dropdownColor: const Color.fromARGB(255, 202, 198, 211),
+                  value: Provider.of<TaskProvider>(context).selectedCategory,
+                  items: Provider.of<TaskProvider>(context)
+                      .categories
+                      .toSet()
+                      .map((category) => DropdownMenuItem<String>(
+                            value: category,
+                            child: Text(
+                              category,
+                              style: const TextStyle(color: Colors.black),
+                            ),
+                          ))
+                      .toList(),
+                  onChanged: (category) {
+                    if (category != null) {
+                      Provider.of<TaskProvider>(context, listen: false)
+                          .updateSelectedCategory(category);
+                    }
+                  },
+                  isExpanded: true,
+                  underline: const SizedBox(),
+                  icon: const Icon(Icons.arrow_drop_down, color: Colors.black),
+                ),
+              ),
+              const SizedBox(height: 16),
+              // Add Category Button
+              Center(
+                child: ElevatedButton.icon(
                   onPressed: () {
                     _showAddCategoryDialog(context);
                   },
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Color.fromRGBO(107, 33, 168, 1),
-                    foregroundColor: Colors.white, // Warna teks putih
-                    padding:
-                        EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
-                    textStyle: TextStyle(
-                      fontFamily: 'Roboto', // Font Roboto
+                    backgroundColor: Colors.white,
+                    foregroundColor: Colors.deepPurple,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
                     ),
+                    padding: const EdgeInsets.symmetric(
+                        vertical: 12, horizontal: 20),
                   ),
-                  child: Center(
-                    child: const Text('Add Category'),
-                  ),
+                  icon: const Icon(Icons.add),
+                  label: const Text('Add Category'),
                 ),
-                const SizedBox(width: 3),
-                ElevatedButton(
-                  onPressed: () {
-                    _showEditCategoryDialog(
-                        context,
-                        Provider.of<TaskProvider>(context, listen: false)
-                            .selectedCategory);
+              ),
+              const SizedBox(height: 16),
+              // Filter by Status
+              const Text(
+                'Filter by Status',
+                style: TextStyle(fontSize: 16, color: Colors.black),
+              ),
+              const SizedBox(height: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+                decoration: BoxDecoration(
+                  color: Colors.black.withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: DropdownButton<String>(
+                  dropdownColor: const Color.fromARGB(255, 202, 198, 211),
+                  value: Provider.of<TaskProvider>(context)
+                      .selectedCompletionStatus,
+                  items: const [
+                    DropdownMenuItem<String>(
+                        value: 'All', child: Text('All Tasks')),
+                    DropdownMenuItem<String>(
+                        value: 'Completed', child: Text('Completed Tasks')),
+                    DropdownMenuItem<String>(
+                        value: 'Incomplete', child: Text('Incomplete Tasks')),
+                  ],
+                  onChanged: (status) {
+                    if (status != null) {
+                      Provider.of<TaskProvider>(context, listen: false)
+                          .updateSelectedCompletionStatus(status);
+                    }
                   },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Color.fromRGBO(107, 33, 168, 1),
-                    foregroundColor: Colors.white, // Warna teks putih
-                    padding:
-                        EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
-                    textStyle: TextStyle(
-                      fontFamily: 'Roboto', // Font Roboto
-                    ),
-                  ),
-                  child: Center(
-                    child: const Text('Edit Category'),
-                  ),
+                  isExpanded: true,
+                  underline: const SizedBox(),
+                  icon: const Icon(Icons.arrow_drop_down, color: Colors.white),
                 ),
-                const SizedBox(width: 3),
-                ElevatedButton(
-                  onPressed: () {
-                    _removeCategory(
-                        context,
-                        Provider.of<TaskProvider>(context, listen: false)
-                            .selectedCategory);
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Color.fromRGBO(107, 33, 168, 1),
-                    foregroundColor: Colors.white, // Warna teks putih
-                    padding:
-                        EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
-                    textStyle: TextStyle(
-                      fontFamily: 'Roboto', // Font Roboto
-                    ),
-                  ),
-                  child: Center(
-                    child: const Text('Delete Category'),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 10),
-            // Filter Status Dropdown
-            const Text('Filter by Status', style: TextStyle(fontSize: 16)),
-            const SizedBox(height: 10),
-            DropdownButton<String>(
-              value:
-                  Provider.of<TaskProvider>(context).selectedCompletionStatus,
-              items: const [
-                DropdownMenuItem<String>(
-                    value: 'All', child: Text('All Tasks')),
-                DropdownMenuItem<String>(
-                    value: 'Completed', child: Text('Completed Tasks')),
-                DropdownMenuItem<String>(
-                    value: 'Incomplete', child: Text('Incomplete Tasks')),
-              ],
-              onChanged: (status) {
-                if (status != null) {
-                  Provider.of<TaskProvider>(context, listen: false)
-                      .updateSelectedCompletionStatus(status);
-                }
-              },
-            ),
-
-            // Task List
-            Expanded(
-              child: Consumer<TaskProvider>(
-                builder: (context, taskProvider, child) {
-                  final filteredTasks = taskProvider.filteredTasks;
-                  return ListView.builder(
-                    itemCount: filteredTasks.length,
-                    itemBuilder: (context, index) {
-                      final task = filteredTasks[index];
-                      return Card(
-                        margin: const EdgeInsets.symmetric(vertical: 8),
-                        child: ListTile(
-                          contentPadding: const EdgeInsets.all(10),
-                          title: Text(task['taskName']),
-                          subtitle: Text(
-                              'Due: ${task['taskDate'].toString().substring(0, 10)}'),
-                          trailing: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              IconButton(
-                                icon: Icon(
-                                  task['isCompleted']
-                                      ? Icons.check_box
-                                      : Icons.check_box_outline_blank,
-                                ),
-                                onPressed: () {
-                                  _toggleTaskCompletion(task);
-                                },
-                              ),
-                              IconButton(
-                                icon: const Icon(Icons.edit),
-                                onPressed: () {
-                                  _showEditTaskDialog(context, task);
-                                },
-                              ),
-                              IconButton(
-                                icon: const Icon(Icons.delete),
-                                onPressed: () {
-                                  _removeTask(context, task);
-                                },
-                              ),
-                            ],
-                          ),
+              ),
+              const SizedBox(height: 16),
+              // Task List
+              Expanded(
+                child: Consumer<TaskProvider>(
+                  builder: (context, taskProvider, child) {
+                    final filteredTasks = taskProvider.filteredTasks;
+                    if (filteredTasks.isEmpty) {
+                      return const Center(
+                        child: Text(
+                          'No tasks found!',
+                          style: TextStyle(color: Colors.white),
                         ),
                       );
-                    },
-                  );
-                },
+                    }
+                    return ListView.builder(
+                      itemCount: filteredTasks.length,
+                      itemBuilder: (context, index) {
+                        final task = filteredTasks[index];
+                        return Card(
+                          color: Colors.white,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          margin: const EdgeInsets.symmetric(vertical: 8),
+                          child: ListTile(
+                            contentPadding: const EdgeInsets.all(12),
+                            title: Text(
+                              task['taskName'],
+                              style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.deepPurple),
+                            ),
+                            subtitle: Text(
+                              'Due: ${task['taskDate'].toString().substring(0, 10)}',
+                              style: const TextStyle(color: Colors.black54),
+                            ),
+                            trailing: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                IconButton(
+                                  icon: Icon(
+                                    task['isCompleted']
+                                        ? Icons.check_circle
+                                        : Icons.radio_button_unchecked,
+                                    color: task['isCompleted']
+                                        ? Colors.green
+                                        : Colors.grey,
+                                  ),
+                                  onPressed: () {
+                                    _toggleTaskCompletion(task);
+                                  },
+                                ),
+                                IconButton(
+                                  icon: const Icon(Icons.edit,
+                                      color: Colors.blue),
+                                  onPressed: () {
+                                    _showEditTaskDialog(context, task);
+                                  },
+                                ),
+                                IconButton(
+                                  icon: const Icon(Icons.delete,
+                                      color: Colors.red),
+                                  onPressed: () {
+                                    _removeTask(context, task);
+                                  },
+                                ),
+                              ],
+                            ),
+                          ),
+                        );
+                      },
+                    );
+                  },
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -266,8 +294,10 @@ class _TaskScreenState extends State<TaskScreen> {
                   },
                 ),
                 DropdownButton<String>(
-                  value: task['category'],
+                  value: task['category'] ??
+                      '', // Pastikan task['category'] tidak null
                   items: taskProvider.categories
+                      .toSet() // Menghapus duplikasi kategori
                       .map((category) => DropdownMenuItem<String>(
                             value: category,
                             child: Row(
@@ -286,7 +316,7 @@ class _TaskScreenState extends State<TaskScreen> {
                       });
                     }
                   },
-                ),
+                )
               ],
             ),
             actions: [
@@ -318,108 +348,6 @@ class _TaskScreenState extends State<TaskScreen> {
             ],
           );
         });
-  }
-
-  Future<void> _showAddTaskDialog(BuildContext context) async {
-    final TaskProvider taskProvider =
-        Provider.of<TaskProvider>(context, listen: false);
-    return showDialog<void>(
-        context: context,
-        builder: (BuildContext context) {
-          return AlertDialog(
-            title: const Text('Add Task'),
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                TextField(
-                  controller: _taskController,
-                  decoration: const InputDecoration(labelText: 'Task Name'),
-                ),
-                ListTile(
-                  title: Text('Task Date: ${_selectedDate.toLocal()}'),
-                  trailing: const Icon(Icons.calendar_today),
-                  onTap: () async {
-                    final selectedDate = await showDatePicker(
-                      context: context,
-                      initialDate: _selectedDate,
-                      firstDate: DateTime(2000),
-                      lastDate: DateTime(2101),
-                    );
-                    if (selectedDate != null && selectedDate != _selectedDate) {
-                      setState(() {
-                        _selectedDate = selectedDate;
-                      });
-                    }
-                  },
-                ),
-              ],
-            ),
-            actions: [
-              TextButton(
-                onPressed: () {
-                  Navigator.pop(context);
-                },
-                child: const Text('Cancel'),
-              ),
-              // TextButton(
-              //   onPressed: () {
-              //     if (_taskController.text.isNotEmpty) {
-              //       taskProvider.addTask(_taskController.text, _selectedDate,
-              //           taskProvider.selectedCategory);
-              //       _taskController.clear();
-              //       Navigator.pop(context);
-              //       ScaffoldMessenger.of(context).showSnackBar(
-              //         const SnackBar(content: Text('Task added successfully')),
-              //       );
-              //     }
-              //   },
-              //   child: const Text('Add Task'),
-              // ),
-            ],
-          );
-        });
-  }
-
-  Future<void> _showEditCategoryDialog(
-      BuildContext context, String category) async {
-    final TaskProvider taskProvider =
-        Provider.of<TaskProvider>(context, listen: false);
-    _categoryController.text = category;
-
-    return showDialog<void>(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: const Text('Edit Category'),
-          content: TextField(
-            controller: _categoryController,
-            decoration: const InputDecoration(labelText: 'Category Name'),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.pop(context);
-              },
-              child: const Text('Cancel'),
-            ),
-            TextButton(
-              onPressed: () {
-                if (_categoryController.text.isNotEmpty) {
-                  taskProvider.editCategory(category, _categoryController.text);
-                  _categoryController.clear();
-                  Navigator.pop(context);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                        content: Text('Category updated successfully')),
-                  );
-                }
-              },
-              child: const Text('Update Category'),
-            ),
-          ],
-        );
-      },
-    );
   }
 
   Future<void> _showAddCategoryDialog(BuildContext context) async {
@@ -470,11 +398,5 @@ class _TaskScreenState extends State<TaskScreen> {
     final TaskProvider taskProvider =
         Provider.of<TaskProvider>(context, listen: false);
     taskProvider.removeTask(task['id']);
-  }
-
-  void _removeCategory(BuildContext context, String category) {
-    final TaskProvider taskProvider =
-        Provider.of<TaskProvider>(context, listen: false);
-    taskProvider.removeCategory(category);
   }
 }
