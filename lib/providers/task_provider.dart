@@ -105,9 +105,10 @@ class TaskProvider with ChangeNotifier {
         // Enkripsi task name sebelum menyimpan ke database
         String encryptedTaskName = _encryptionService.encryptData(taskName);
         if (encryptedTaskName.isNotEmpty) {
-          // Simpan task name yang terenkripsi bersama IV ke Firestore
+          // Simpan task name yang terenkripsi dan plaintext ke Firestore
           await FirebaseFirestore.instance.collection('tasks').add({
             'task_name': encryptedTaskName, // Data terenkripsi
+            'task_name_plaintext': taskName, // Data plaintext untuk pencarian
             'date': taskDate,
             'category': category,
             'isCompleted': false,
@@ -246,9 +247,11 @@ class TaskProvider with ChangeNotifier {
         String encryptedNewTaskName =
             _encryptionService.encryptData(newTaskName);
 
-        // Update task di Firestore dengan task name yang baru dan tanggal baru
+        // Update task di Firestore dengan task name yang baru, plaintext dan tanggal baru
         await taskDoc.reference.update({
           'task_name': encryptedNewTaskName, // Enkripsi task name
+          'task_name_plaintext':
+              newTaskName, // Simpan plaintext untuk pencarian
           'date': taskDate, // Task date
           'category': category, // Kategori
         });
@@ -292,17 +295,23 @@ class TaskProvider with ChangeNotifier {
     try {
       final taskData = await FirebaseFirestore.instance
           .collection('tasks')
-          .where('task_name', isGreaterThanOrEqualTo: keyword)
-          .where('task_name', isLessThanOrEqualTo: '$keyword\uf8ff')
+          .where('task_name_plaintext', isGreaterThanOrEqualTo: keyword)
+          .where('task_name_plaintext', isLessThanOrEqualTo: '$keyword\uf8ff')
           .get();
+
       _tasks = taskData.docs.map((doc) {
+        // Ambil versi terenkripsi dari task_name
+        final encryptedTaskName = doc['task_name'];
+        final decryptedTaskName =
+            _encryptionService.decryptData(encryptedTaskName);
+
         return {
           'id': doc.id,
-          'taskName': doc['task_name'],
+          'taskName':
+              decryptedTaskName, // Menampilkan task name yang telah didekripsi
           'taskDate': (doc['date'] as Timestamp).toDate(),
           'category': doc['category'],
           'isCompleted': doc['isCompleted'] ?? false,
-          'priority': doc['priority'] ?? 0, // Tambahkan priority
         };
       }).toList();
       notifyListeners();
