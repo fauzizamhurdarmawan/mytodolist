@@ -47,7 +47,7 @@ class _TaskScreenState extends State<TaskScreen> {
       body: Container(
         decoration: const BoxDecoration(
           gradient: LinearGradient(
-            colors: [const Color.fromARGB(255, 193, 185, 200), Colors.white],
+            colors: [Color.fromARGB(255, 193, 185, 200), Colors.white],
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
           ),
@@ -391,12 +391,38 @@ class _TaskScreenState extends State<TaskScreen> {
   void _toggleTaskCompletion(Map<String, dynamic> task) {
     final TaskProvider taskProvider =
         Provider.of<TaskProvider>(context, listen: false);
+
+    // Toggle completion status
     taskProvider.toggleTaskCompletion(task['id'], task['isCompleted']);
+
+    // Show Snackbar
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          task['isCompleted'] ? 'Tugas belum selesai!' : 'Tugas selesai.',
+          style: const TextStyle(fontSize: 16),
+        ),
+        duration: const Duration(seconds: 2),
+      ),
+    );
   }
 
   void _removeTask(BuildContext context, Map<String, dynamic> task) {
     final TaskProvider taskProvider =
         Provider.of<TaskProvider>(context, listen: false);
+
+    // Remove task
     taskProvider.removeTask(task['id']);
+
+    // Show Snackbar
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          'Tugas berhasil dihapus!',
+          style: const TextStyle(fontSize: 16),
+        ),
+        duration: const Duration(seconds: 2),
+      ),
+    );
   }
 }
