@@ -289,7 +289,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
                               ),
                             ),
                             subtitle: Text(
-                              'Tanggal: ${task['date']}',
+                              'Due: ${task['date'].toString().substring(0, 10)}',
                               style: const TextStyle(fontSize: 14),
                             ),
                           ),
