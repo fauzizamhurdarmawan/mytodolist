@@ -109,7 +109,8 @@ class TaskProvider with ChangeNotifier {
           await FirebaseFirestore.instance.collection('tasks').add({
             'task_name': encryptedTaskName, // Data terenkripsi
             'task_name_plaintext': taskName, // Data plaintext untuk pencarian
-            'date': taskDate,
+            'date':
+                Timestamp.fromDate(taskDate), // Konversi DateTime ke Timestamp
             'category': category,
             'isCompleted': false,
           });
