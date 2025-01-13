@@ -56,6 +56,22 @@ class _AccountScreenState extends State<AccountScreen> {
 
       // Konversi gambar menjadi base64
       _convertImageToBase64(_imageFile!);
+
+      // Menampilkan Snackbar setelah gambar dipilih
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Gambar berhasil dipilih!'),
+          duration: Duration(seconds: 2),
+        ),
+      );
+    } else {
+      // Menampilkan Snackbar jika tidak ada gambar yang dipilih
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Gambar tidak dipilih.'),
+          duration: Duration(seconds: 2),
+        ),
+      );
     }
   }
 
@@ -85,12 +101,30 @@ class _AccountScreenState extends State<AccountScreen> {
         setState(() {
           _base64Image = base64Image;
         });
+
+        // Menampilkan Snackbar setelah foto berhasil diperbarui
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Foto profil berhasil diperbarui!'),
+            duration: Duration(seconds: 2),
+          ),
+        );
+
+        Image.memory(base64Decode(_base64Image!));
         print("Foto profil berhasil diperbarui.");
       } else {
         print("Dokumen pengguna tidak ditemukan.");
       }
     } catch (e) {
       print('Error saving image: $e');
+
+      // Menampilkan Snackbar jika terjadi kesalahan
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Terjadi kesalahan saat memperbarui foto.'),
+          duration: Duration(seconds: 2),
+        ),
+      );
     }
   }
 
@@ -119,6 +153,13 @@ class _AccountScreenState extends State<AccountScreen> {
   // Fungsi untuk sign out
   Future<void> _signOut(BuildContext context) async {
     await _auth.signOut();
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Anda telah berhasil keluar.'),
+        duration: Duration(seconds: 2),
+      ),
+    );
+
     Navigator.pushReplacement(
       context,
       MaterialPageRoute(builder: (context) => LoginScreen()),
